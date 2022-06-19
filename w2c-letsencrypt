@@ -1,0 +1,59 @@
+#!/bin/sh
+#
+# Copyright (c) Johannes Feichtner <johannes@web-wack.at>
+# Released under the GNU GPLv3 License.
+#
+# chkconfig: on 99 99
+# description: Letsencrypt for ESXi
+#
+
+export PATH=/sbin:/usr/sbin:/bin:/usr/bin
+
+log() {
+   echo "$@"
+   logger -p daemon.info -t "$0" "$@"
+}
+
+for action in "$@"; do
+   log "Running '${action}' action";
+
+   case "$action" in
+      start)
+         /opt/w2c-letsencrypt/renew.sh
+         ;;
+
+      remove)
+         sed -i '/\/opt\/w2c-letsencrypt/d' /var/spool/cron/crontabs/root
+         sed -i '/acme-challenge/d' /etc/vmware/rhttpproxy/endpoints.conf
+         /sbin/generate-certificates
+         for s in /etc/init.d/*; do if $s | grep ssl_reset > /dev/null; then $s ssl_reset; fi; done
+         ;;
+
+      stop)
+         true
+         ;;
+
+      status)
+         true
+         ;;
+
+      install)
+         true
+         ;;
+
+      upgrade)
+         true
+         ;;
+
+      restart)
+         "$0" stop
+         "$0" start
+         ;;
+
+      *)
+         echo "Usage: $(basename "$0") {start|stop|status|restart}"
+         exit 1
+   esac
+done
+
+exit 0

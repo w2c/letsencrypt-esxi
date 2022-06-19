@@ -1,0 +1,13 @@
+image: lamw/vibauthor:latest
+
+build:
+  stage: build
+  only:
+    - tags
+  script:
+    - /bin/bash ./build/create_vib.sh
+  artifacts:
+    name: "$CI_PROJECT_NAME-$CI_COMMIT_TAG"
+    paths:
+      - build/w2c-letsencrypt-esxi.vib
+      - build/w2c-letsencrypt-esxi-offline-bundle.zip
