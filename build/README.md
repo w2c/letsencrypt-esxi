@@ -86,3 +86,4 @@ GRUB_CMDLINE_LINUX_DEFAULT="quiet vsyscall=emulate"
 update-grub
 reboot
 ```
+Anything past Debian `stretch` appears to need this set.
