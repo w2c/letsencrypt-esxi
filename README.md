@@ -81,6 +81,8 @@ For a non-default (i.e. private CA) configuration, you can also store your confi
 DIRECTORY_URL="https://acme-staging-v02.api.letsencrypt.org/directory"
 # Change your CA bundle if your CA is private, otherwise acme-tiny will complain about untrusted certs.
 SSL_CERT_FILE="$LOCALDIR/ca-certificates.crt"
+# Make sure to also change your OU, default is Let's Encrypt.
+OU="O=Let's Encrypt"
 # Set the renewal interval to 15 days
 RENEW_DAYS=15
 ```
