@@ -1,6 +1,8 @@
+*Originally a product of w2c/letsencrypt-esxi. Modified for those of us that are either unable or unwilling to expose our ESXi management interfaces to the Internet.*
+
 # Let's Encrypt for VMware ESXi
 
-`w2c-letsencrypt-esxi` is a lightweight open-source solution to automatically obtain and renew Let's Encrypt certificates on standalone VMware ESXi servers. Packaged as a _VIB archive_ or _Offline Bundle_, install/upgrade/removal is possible directly via the web UI or, alternatively, with just a few SSH commands.
+`w2c-letsencrypt-esxi` is a lightweight open-source solution to automatically obtain and renew Let's Encrypt or private ACME CA certificates on standalone VMware ESXi servers. Packaged as a _VIB archive_ or _Offline Bundle_, install/upgrade/removal is possible directly via the web UI or, alternatively, with just a few SSH commands.
 
 Features:
 
@@ -8,12 +10,15 @@ Features:
 - **Auto-renewal**: A cronjob runs once a week to check if a certificate is due for renewal
 - **Persistent**: The certificate, private key and all settings are preserved over ESXi upgrades
 - **Configurable**: Customizable parameters for renewal interval, Let's Encrypt (ACME) backend, etc
+- **Can be used with any ACME CA**: [LabCA](https://github.com/hakwerk/labca) is a great example.
 
 _Successfully tested with all currently supported versions of ESXi (6.5, 6.7, 7.0)._
 
 ## Why?
 
-Many ESXi servers are accessible over the Internet and use self-signed X.509 certificates for TLS connections. This situation not only leads to annoying warnings in the browser when calling the Web UI, but can also be the reason for serious security problems. Despite the enormous popularity of [Let's Encrypt](https://letsencrypt.org), there is no convenient way to automatically request, renew or remove certificates in ESXi.
+Many ESXi servers are accessible over the Internet and use self-signed X.509 certificates for TLS connections. This situation not only leads to annoying warnings in the browser when calling the Web UI, but can also be the reason for serious security problems. Despite the enormous popularity of [Let's Encrypt](https://letsencrypt.org) and ACME, there is no convenient way to automatically request, renew or remove certificates in ESXi.
+
+*No user should get used to ignoring a certificate warning from any browser, even self-signed or local.*
 
 ## Prerequisites
 
@@ -22,6 +27,7 @@ Before installing `w2c-letsencrypt-esxi`, ensure the following preconditions are
 - Your server is publicly reachable over the Internet
 - A _Fully Qualified Domain Name (FQDN)_ is set in ESXi. Something like `localhost.localdomain` will not work
 - The hostname you specified can be resolved via A and/or AAAA records in the corresponding DNS zone
+- If you're running a private CA, the CA is reachable and you have any certificates you may need bundled.
 
 **Note:** As soon as you install this software, any existing, non Let's Encrypt certificate gets replaced!
 
@@ -65,9 +71,16 @@ If you want to try out the script before putting it into production, you may wan
 
 `vi /opt/w2c-letsencrypt/renew.cfg`
 
+For a non-default (i.e. private CA) configuration, you can also store your config file in `/etc/w2c-letsencrypt` and run `/sbin/auto-backup.sh` to persist your configuration.
+
+`vi /etc/w2c-letsencrypt/renew.cfg`
+`/sbin/auto-backup.sh`
+
 ```bash
-# Request a certificate from the staging environment
+# Request a certificate from the staging environment. This can also be set to a private CA.
 DIRECTORY_URL="https://acme-staging-v02.api.letsencrypt.org/directory"
+# Change your CA bundle if your CA is private, otherwise acme-tiny will complain about untrusted certs.
+SSL_CERT_FILE="$LOCALDIR/ca-certificates.crt"
 # Set the renewal interval to 15 days
 RENEW_DAYS=15
 ```
