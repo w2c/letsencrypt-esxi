@@ -2,7 +2,7 @@
 
 # Let's Encrypt for VMware ESXi
 
-`w2c-letsencrypt-esxi` is a lightweight open-source solution to automatically obtain and renew Let's Encrypt or private ACME CA certificates on standalone VMware ESXi servers. Packaged as a _VIB archive_ or _Offline Bundle_, install/upgrade/removal is possible directly via the web UI or, alternatively, with just a few SSH commands.
+`acme-esxi` is a lightweight open-source solution to automatically obtain and renew Let's Encrypt or private ACME CA certificates on standalone VMware ESXi servers. Packaged as a _VIB archive_ or _Offline Bundle_, install/upgrade/removal is possible directly via the web UI or, alternatively, with just a few SSH commands.
 
 Features:
 
@@ -22,7 +22,7 @@ Many ESXi servers are accessible over the Internet and use self-signed X.509 cer
 
 ## Prerequisites
 
-Before installing `w2c-letsencrypt-esxi`, ensure the following preconditions are met:
+Before installing `acme-esxi`, ensure the following preconditions are met:
 
 - Your server is publicly reachable over the Internet
 - A _Fully Qualified Domain Name (FQDN)_ is set in ESXi. Something like `localhost.localdomain` will not work
@@ -33,23 +33,23 @@ Before installing `w2c-letsencrypt-esxi`, ensure the following preconditions are
 
 ## Install
 
-`w2c-letsencrypt-esxi` can be installed via SSH or the Web UI (= Embedded Host Client).
+`acme-esxi` can be installed via SSH or the Web UI (= Embedded Host Client).
 
 ### SSH on ESXi
 
 ```bash
-$ wget -O /tmp/w2c-letsencrypt-esxi.vib https://github.com/w2c/letsencrypt-esxi/releases/latest/download/w2c-letsencrypt-esxi.vib
+$ wget -O /tmp/acme-esxi.vib https://github.com/NateTheSage/acme-esxi/releases/latest/download/acme-esxi.vib
 
-$ esxcli software vib install -v /tmp/w2c-letsencrypt-esxi.vib -f
+$ esxcli software vib install -v /tmp/acme-esxi.vib -f
 Installation Result
    Message: Operation finished successfully.
    Reboot Required: false
-   VIBs Installed: web-wack-creations_bootbank_w2c-letsencrypt-esxi_1.0.0-0.0.0
+   VIBs Installed: web-wack-creations_bootbank_acme-esxi_1.0.0-0.0.0
    VIBs Removed:
    VIBs Skipped:
 
 $ esxcli software vib list | grep w2c
-w2c-letsencrypt-esxi  1.0.0-0.0.0  web-wack-creations  CommunitySupported  2022-05-29
+acme-esxi  1.0.0-0.0.0  web-wack-creations  CommunitySupported  2022-05-29
 
 $ cat /var/log/syslog.log | grep w2c
 2022-05-29T20:01:46Z /etc/init.d/w2c-letsencrypt: Running 'start' action
@@ -60,7 +60,7 @@ $ cat /var/log/syslog.log | grep w2c
 
 ### Web UI (= Embedded Host Client)
 
-1. _Storage -> Datastores:_ Use the Datastore browser to upload the [VIB file](https://github.com/w2c/letsencrypt-esxi/releases/latest/download/w2c-letsencrypt-esxi.vib) to a datastore path of your choice.
+1. _Storage -> Datastores:_ Use the Datastore browser to upload the [VIB file](https://github.com/w2c/letsencrypt-esxi/releases/latest/download/acme-esxi.vib) to a datastore path of your choice.
 2. _Manage -> Security & users:_ Set the acceptance level of your host to _Community_.
 3. _Manage -> Packages:_ Switch to the list of installed packages, click on _Install update_ and enter the absolute path on the datastore where your just uploaded VIB file resides.
 4. While the VIB is installed, ESXi requests a certificate from Let's Encrypt. If you reload the Web UI afterwards, the newly requested certificate should already be active. If not, see the [Wiki](https://github.com/w2c/letsencrypt-esxi/wiki) for troubleshooting.
@@ -91,19 +91,19 @@ To apply your modifications, run `/etc/init.d/w2c-letsencrypt start`
 
 ## Uninstall
 
-Remove the installed `w2c-letsencrypt-esxi` package via SSH:
+Remove the installed `acme-esxi` package via SSH:
 
 ```bash
-$ esxcli software vib remove -n w2c-letsencrypt-esxi
+$ esxcli software vib remove -n acme-esxi
 Removal Result
    Message: Operation finished successfully.
    Reboot Required: false
    VIBs Installed:
-   VIBs Removed: web-wack-creations_bootbank_w2c-letsencrypt-esxi_1.0.0-0.0.0
+   VIBs Removed: web-wack-creations_bootbank_acme-esxi_1.0.0-0.0.0
    VIBs Skipped:
 ```
 
-This action will purge `w2c-letsencrypt-esxi`, undo any changes to system files (cronjob and port redirection) and finally call `/sbin/generate-certificates` to generate and install a new, self-signed certificate.
+This action will purge `acme-esxi`, undo any changes to system files (cronjob and port redirection) and finally call `/sbin/generate-certificates` to generate and install a new, self-signed certificate.
 
 ## Usage
 
@@ -111,7 +111,7 @@ Usually, fully-automated. No interaction required.
 
 ### Hostname Change
 
-If you change the hostname on our ESXi instance, the domain the certificate is issued for will mismatch. In that case, either re-install `w2c-letsencrypt-esxi` or simply run `/etc/init.d/w2c-letsencrypt start`, e.g.:
+If you change the hostname on our ESXi instance, the domain the certificate is issued for will mismatch. In that case, either re-install `acme-esxi` or simply run `/etc/init.d/w2c-letsencrypt start`, e.g.:
 
 ```bash
 $ esxcfg-advcfg -s new-example.com /Misc/hostname
@@ -194,7 +194,7 @@ See the [Wiki](https://github.com/w2c/letsencrypt-esxi/wiki) for possible pitfal
 
 ## License
 
-    w2c-letsencrypt-esxi is free software;
+    acme-esxi is free software;
     you can redistribute it and/or modify it under the terms of the
     GNU General Public License as published by the Free Software Foundation,
     either version 3 of the License, or (at your option) any later version.
