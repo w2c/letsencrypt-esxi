@@ -4,7 +4,7 @@
 # Released under the GNU GPLv3 License.
 #
 # chkconfig: on 99 99
-# description: Letsencrypt for ESXi
+# description: ACME and Let's Encrypt for ESXi
 #
 
 export PATH=/sbin:/usr/sbin:/bin:/usr/bin
@@ -19,11 +19,11 @@ for action in "$@"; do
 
    case "$action" in
       start)
-         /opt/w2c-letsencrypt/renew.sh
+         /opt/acme-esxi/renew.sh
          ;;
 
       remove)
-         sed -i '/\/opt\/w2c-letsencrypt/d' /var/spool/cron/crontabs/root
+         sed -i '/\/opt\/acme-esxi/d' /var/spool/cron/crontabs/root
          sed -i '/acme-challenge/d' /etc/vmware/rhttpproxy/endpoints.conf
          /sbin/generate-certificates
          for s in /etc/init.d/*; do if $s | grep ssl_reset > /dev/null; then $s ssl_reset; fi; done

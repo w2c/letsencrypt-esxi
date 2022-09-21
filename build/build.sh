@@ -2,14 +2,14 @@
 #
 # Copyright (c) Johannes Feichtner <johannes@web-wack.at>
 #
-# Script to build letsencrypt-esxi VIB using VIB Author
+# Script to build acme-esxi VIB using VIB Author
 
 LOCALDIR=$(dirname "$(readlink -f "$0")")
 cd "${LOCALDIR}/.." || exit
 
-docker rmi -f letsencrypt-esxi 2> /dev/null
+docker rmi -f acme-esxi 2> /dev/null
 rm -rf artifacts
-docker build -t letsencrypt-esxi -f build/Dockerfile .
-docker run -i -v "${PWD}"/artifacts:/artifacts letsencrypt-esxi sh << COMMANDS
-cp letsencrypt-esxi/build/w2c-letsencrypt-esxi* /artifacts
+docker build -t acme-esxi -f build/Dockerfile .
+docker run -i -v "${PWD}"/artifacts:/artifacts acme-esxi sh << COMMANDS
+cp acme-esxi/build/acme-esxi* /artifacts
 COMMANDS
