@@ -15,18 +15,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Create VIB and offline bundle
+      - name: Create VIB
         run: /bin/bash ./build/build.sh
 
-      - name: Store VIB and offline bundle
+      - name: Store VIB
         uses: actions/upload-artifact@v2
         with:
           name: w2c-letsencrypt-esxi
           path: |
             artifacts/w2c-letsencrypt-esxi.vib
-            artifacts/w2c-letsencrypt-esxi-offline-bundle.zip
           if-no-files-found: error
-          
+
   release:
     name: Release
     if: startsWith(github.ref, 'refs/tags/')
@@ -47,4 +46,3 @@ jobs:
           body: w2c-letsencrypt-esxi
           files: |
             w2c-letsencrypt-esxi.vib
-            w2c-letsencrypt-esxi-offline-bundle.zip
