@@ -98,6 +98,8 @@ if [ -n "$CERT" ] ; then
   cp -p "$LOCALDIR/$KEY" "$VMWARE_KEY"
   cp -p "$LOCALDIR/$CRT" "$VMWARE_CRT"
   log "Success: Obtained and installed a certificate from Let's Encrypt."
+elif openssl x509 -checkend 86400 -noout -in "$VMWARE_CRT"; then
+  log "Warning: No cert obtained from Let's Encrypt. Keeping the existing one as it is still valid."
 else
   log "Error: No cert obtained from Let's Encrypt. Generating a self-signed certificate."
   /sbin/generate-certificates
