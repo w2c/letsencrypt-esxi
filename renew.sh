@@ -3,7 +3,7 @@
 # Copyright (c) Johannes Feichtner <johannes@web-wack.at>
 # Released under the GNU GPLv3 License.
 
-DOMAIN=$(grep "adv/Misc/HostName" /etc/vmware/esx.conf | awk '{print $3}' | xargs)
+DOMAIN=$(hostname -f)
 LOCALDIR=$(dirname "$(readlink -f "$0")")
 LOCALSCRIPT=$(basename "$0")
 
