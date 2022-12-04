@@ -103,6 +103,9 @@ __W2C__
 touch ${TEMP_DIR}/sig.pkcs7
 ar r w2c-letsencrypt-esxi.vib ${TEMP_DIR}/descriptor.xml ${TEMP_DIR}/sig.pkcs7 ${TEMP_DIR}/payload1
 
+# Create the offline bundle
+PYTHONPATH=/opt/vmware/vibtools-6.0.0-847598/bin python -c "import vibauthorImpl; vibauthorImpl.CreateOfflineBundle('w2c-letsencrypt-esxi.vib', 'w2c-letsencrypt-esxi-offline-bundle.zip', True)"
+
 # Show some details about what we have just created
 vibauthor -i -v w2c-letsencrypt-esxi.vib
 

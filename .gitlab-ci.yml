@@ -10,3 +10,4 @@ build:
     name: "$CI_PROJECT_NAME-$CI_COMMIT_TAG"
     paths:
       - build/w2c-letsencrypt-esxi.vib
+      - build/w2c-letsencrypt-esxi-offline-bundle.zip

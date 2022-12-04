@@ -24,6 +24,7 @@ jobs:
           name: w2c-letsencrypt-esxi
           path: |
             artifacts/w2c-letsencrypt-esxi.vib
+            artifacts/w2c-letsencrypt-esxi-offline-bundle.zip
           if-no-files-found: error
 
   release:
@@ -46,3 +47,4 @@ jobs:
           body: w2c-letsencrypt-esxi
           files: |
             w2c-letsencrypt-esxi.vib
+            w2c-letsencrypt-esxi-offline-bundle.zip
