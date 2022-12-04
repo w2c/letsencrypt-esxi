@@ -35,7 +35,28 @@ mkdir -p ${TEMP_DIR}
 # Create VIB spec payload directory
 mkdir -p ${VIB_PAYLOAD_DIR}
 
+# Create target directory
+BIN_DIR=${VIB_PAYLOAD_DIR}/opt/w2c-letsencrypt
+INIT_DIR=${VIB_PAYLOAD_DIR}/etc/init.d
+mkdir -p ${BIN_DIR} ${INIT_DIR}
+
+# Copy files to the corresponding locations
+cp ../* ${BIN_DIR} 2>/dev/null
+cp ../w2c-letsencrypt ${INIT_DIR}
+
+# Ensure that shell scripts are executable
+chmod +x ${INIT_DIR}/w2c-letsencrypt ${BIN_DIR}/renew.sh
+
+# Create tgz with payload
+tar czf ${TEMP_DIR}/payload1 -C ${VIB_PAYLOAD_DIR} etc opt
+
 # Create letsencrypt-esxi VIB descriptor.xml
+PAYLOAD_FILES=$(tar tf ${TEMP_DIR}/payload1 | grep -v -E '/$' | sed -e 's/^/    <file>/' -e 's/$/<\/file>/')
+PAYLOAD_SIZE=$(stat -c %s ${TEMP_DIR}/payload1)
+PAYLOAD_SHA256=$(sha256sum ${TEMP_DIR}/payload1 | awk '{print $1}')
+PAYLOAD_SHA256_ZCAT=$(zcat ${TEMP_DIR}/payload1 | sha256sum | awk '{print $1}')
+PAYLOAD_SHA1_ZCAT=$(zcat ${TEMP_DIR}/payload1 | sha1sum | awk '{print $1}')
+
 cat > ${VIB_DESC_FILE} << __W2C__
 <vib version="5.0">
   <type>bootbank</type>
@@ -60,6 +81,7 @@ cat > ${VIB_DESC_FILE} << __W2C__
     <maintenance-mode>false</maintenance-mode>
   </system-requires>
   <file-list>
+${PAYLOAD_FILES}
   </file-list>
   <acceptance-level>community</acceptance-level>
   <live-install-allowed>true</live-install-allowed>
@@ -68,25 +90,18 @@ cat > ${VIB_DESC_FILE} << __W2C__
   <stateless-ready>true</stateless-ready>
   <overlay>false</overlay>
   <payloads>
-    <payload name="payload1" type="vgz"></payload>
+    <payload name="payload1" type="tgz" size="${PAYLOAD_SIZE}">
+        <checksum checksum-type="sha-256">${PAYLOAD_SHA256}</checksum>
+        <checksum checksum-type="sha-256" verify-process="gunzip">${PAYLOAD_SHA256_ZCAT}</checksum>
+        <checksum checksum-type="sha-1" verify-process="gunzip">${PAYLOAD_SHA1_ZCAT}</checksum>
+    </payload>
   </payloads>
 </vib>
 __W2C__
 
-# Create target directory
-BIN_DIR=${VIB_PAYLOAD_DIR}/opt/w2c-letsencrypt
-INIT_DIR=${VIB_PAYLOAD_DIR}/etc/init.d
-mkdir -p ${BIN_DIR} ${INIT_DIR}
-
-# Copy files to the corresponding locations
-cp ../* ${BIN_DIR} 2>/dev/null
-cp ../w2c-letsencrypt ${INIT_DIR}
-
-# Ensure that shell scripts are executable
-chmod +x ${INIT_DIR}/w2c-letsencrypt ${BIN_DIR}/renew.sh
-
-# Create letsencrypt-esxi VIB + offline bundle
-vibauthor -C -t ${TEMP_DIR} -v w2c-letsencrypt-esxi.vib -O w2c-letsencrypt-esxi-offline-bundle.zip -f
+# Create letsencrypt-esxi VIB
+touch ${TEMP_DIR}/sig.pkcs7
+ar r w2c-letsencrypt-esxi.vib ${TEMP_DIR}/descriptor.xml ${TEMP_DIR}/sig.pkcs7 ${TEMP_DIR}/payload1
 
 # Show some details about what we have just created
 vibauthor -i -v w2c-letsencrypt-esxi.vib
