@@ -9,7 +9,7 @@ Features:
 - **Persistent**: The certificate, private key and all settings are preserved over ESXi upgrades
 - **Configurable**: Customizable parameters for renewal interval, Let's Encrypt (ACME) backend, etc
 
-_Successfully tested with all currently supported versions of ESXi (6.5, 6.7, 7.0)._
+_Successfully tested with ESXi 6.5, 6.7, 7.0, 8.0._
 
 ## Why?
 
