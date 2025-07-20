@@ -4,22 +4,34 @@ on:
   push:
     tags:
       - '[0-9]+.[0-9]+.[0-9]+'
-
   workflow_dispatch:
+
+permissions:
+  contents: write  # required for release creation
+  actions: read
+  checks: read
+  deployments: read
+  issues: read
+  pull-requests: read
+  repository-projects: read
+  security-events: read
+  statuses: read
 
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Create VIB
         run: /bin/bash ./build/build.sh
 
       - name: Store VIB
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: w2c-letsencrypt-esxi
           path: |
@@ -32,19 +44,21 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Retrieve build artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: w2c-letsencrypt-esxi
 
       - name: Create release
         id: create_release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          body: w2c-letsencrypt-esxi
+          generate_release_notes: true
           files: |
             w2c-letsencrypt-esxi.vib
             w2c-letsencrypt-esxi-offline-bundle.zip
