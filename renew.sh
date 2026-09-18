@@ -50,7 +50,7 @@ if [ -e "$VMWARE_CRT" ]; then
   if [ "$SAN" != "$DOMAIN" ] ; then
     log "Existing cert issued for ${SAN} but current domain name is ${DOMAIN}. Requesting a new one!"
   # If the cert is issued by Let's Encrypt, check its expiration date, otherwise request a new one
-  elif openssl x509 -in "$VMWARE_CRT" -issuer -noout | grep -q "O=Let's Encrypt"; then
+  elif openssl x509 -in "$VMWARE_CRT" -issuer -noout | grep -qE "O ?= ?Let's Encrypt"; then
     CERT_VALID=$(openssl x509 -enddate -noout -in "$VMWARE_CRT" | cut -d= -f2-)
     log "Existing Let's Encrypt cert valid until: ${CERT_VALID}"
     if openssl x509 -checkend $((RENEW_DAYS * 86400)) -noout -in "$VMWARE_CRT"; then
