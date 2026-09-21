@@ -85,11 +85,28 @@ esxcli network firewall ruleset set -e true -r httpClient
 python -m "http.server" 8120 &
 HTTP_SERVER_PID=$!
 
+# Get the firewall status
+firewall_status=$(esxcli network firewall get | grep "Enabled:" | awk '{print $NF}')
+
+# Disable firewall if it's enabled
+if [ "$firewall_status" = "true" ]; then
+    esxcli network firewall set --enabled=false
+    log "Firewall disabled successfully."
+else
+    log "Firewall is already disabled."
+fi
+
 # Retrieve the certificate
 export SSL_CERT_FILE
 CERT=$(python ./acme_tiny.py --account-key "$ACCOUNTKEY" --csr "$CSR" --acme-dir "$ACMEDIR" --directory-url "$DIRECTORY_URL")
 
 kill -9 "$HTTP_SERVER_PID"
+
+# Enable firewall back if it was enabled
+if [ "$firewall_status" = "true" ]; then
+    esxcli network firewall set --enabled=true
+    log "Firewall enabled successfully."
+fi
 
 # If an error occurred during certificate issuance, $CERT will be empty
 if [ -n "$CERT" ] ; then
