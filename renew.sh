@@ -7,6 +7,38 @@ DOMAIN=$(hostname -f)
 LOCALDIR=$(dirname "$(readlink -f "$0")")
 LOCALSCRIPT=$(basename "$0")
 
+# Config persistence logic: backup and restore renew.cfg
+# This ensures user configuration is not lost during VIB upgrades or accidental deletion.
+CONFIG="$LOCALDIR/renew.cfg"
+CONFIG_BAK="/etc/w2c-letsencrypt/renew.cfg.bak"
+CONFIG_BAK_OLD="/etc/w2c-letsencrypt/renew.cfg.bak.old"
+
+# Ensure backup directory exists (persistent across upgrades)
+if [ ! -d "/etc/w2c-letsencrypt" ]; then
+  mkdir -p "/etc/w2c-letsencrypt"
+fi
+
+# If renew.cfg exists and is newer than the backup, rotate backups and update
+#   - Keep up to two backup versions: .bak (latest), .bak.old (previous)
+if [ -f "$CONFIG" ]; then
+  if [ -f "$CONFIG_BAK" ]; then
+    if [ "$CONFIG" -nt "$CONFIG_BAK" ]; then
+      # Remove oldest backup if present, rotate current backup, then update
+      [ -f "$CONFIG_BAK_OLD" ] && rm -f "$CONFIG_BAK_OLD"
+      mv "$CONFIG_BAK" "$CONFIG_BAK_OLD"
+      cp "$CONFIG" "$CONFIG_BAK"
+    fi
+  else
+    # No backup exists yet, create initial backup
+    cp "$CONFIG" "$CONFIG_BAK"
+  fi
+fi
+
+# Restore renew.cfg from backup if the main config is missing but backup exists
+if [ ! -f "$CONFIG" ] && [ -f "$CONFIG_BAK" ]; then
+  cp "$CONFIG_BAK" "$CONFIG"
+fi
+
 ACMEDIR="$LOCALDIR/.well-known/acme-challenge"
 DIRECTORY_URL="https://acme-v02.api.letsencrypt.org/directory"
 SSL_CERT_FILE="$LOCALDIR/ca-certificates.crt"
