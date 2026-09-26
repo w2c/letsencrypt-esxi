@@ -17,11 +17,19 @@ Many ESXi servers are accessible over the Internet and use self-signed X.509 cer
 
 ## Prerequisites
 
-Before installing `w2c-letsencrypt-esxi`, ensure the following preconditions are met:
+Before installing `w2c-letsencrypt-esxi`, ensure the following preconditions are met.
 
+- A _Fully Qualified Domain Name (FQDN)_ must be set in ESXi. Something like `localhost.localdomain` will not work.
+
+Additional requirements depend on the challenge type you plan to use:
+
+### HTTP-01 Challenges
 - Your server is publicly reachable over the Internet
-- A _Fully Qualified Domain Name (FQDN)_ is set in ESXi. Something like `localhost.localdomain` will not work
 - The hostname you specified can be resolved via A and/or AAAA records in the corresponding DNS zone
+
+### DNS-01 Challenges
+- Your server _does not_ need to be publicly reachable over the Internet; this method also allows wildcard certificates
+- You must be able to manage DNS records for your domain (API credentials for supported providers, or manual access)
 
 **Note:** As soon as you install this software, any existing, non Let's Encrypt certificate gets replaced!
 
@@ -59,20 +67,44 @@ $ cat /var/log/syslog.log | grep w2c
 3. _Manage -> Packages:_ Switch to the list of installed packages, click on _Install update_ and enter the absolute path on the datastore where your just uploaded VIB file resides.
 4. While the VIB is installed, ESXi requests a certificate from Let's Encrypt. If you reload the Web UI afterwards, the newly requested certificate should already be active. If not, see the [Wiki](https://github.com/w2c/letsencrypt-esxi/wiki) for troubleshooting.
 
-### Optional Configuration
+### Configuration
 
-If you want to try out the script before putting it into production, you may want to test against the [staging environment](https://letsencrypt.org/docs/staging-environment/) of Let's Encrypt. Probably, you also do not wish to renew certificates once in 30 days but in longer or shorter intervals. Most variables of `renew.sh` can be adjusted by creating a `renew.cfg` file with your overwritten values.
-
-`vi /opt/w2c-letsencrypt/renew.cfg`
+To customize certificate renewal, copy the example configuration file and edit it:
 
 ```bash
-# Request a certificate from the staging environment
-DIRECTORY_URL="https://acme-staging-v02.api.letsencrypt.org/directory"
-# Set the renewal interval to 15 days
-RENEW_DAYS=15
+cp /opt/w2c-letsencrypt/renew.cfg.example /opt/w2c-letsencrypt/renew.cfg
+vi /opt/w2c-letsencrypt/renew.cfg
 ```
 
-To apply your modifications, run `/etc/init.d/w2c-letsencrypt start`
+Most options can be set in `renew.cfg`. See [`renew.cfg.example`](renew.cfg.example) for all available settings and DNS provider variables.
+
+#### Common configuration examples
+
+- **Use Let's Encrypt staging environment and change the renewal interval:**
+
+    ```bash
+    DIRECTORY_URL="https://acme-staging-v02.api.letsencrypt.org/directory"
+    RENEW_DAYS=15
+    ```
+
+- **Enable DNS-01 challenge (Cloudflare):**
+
+    ```bash
+    CHALLENGE_TYPE="dns-01"
+    DNS_PROVIDER="cloudflare"
+    CF_API_TOKEN="your-cloudflare-api-token"
+    ```
+
+- **Enable DNS-01 challenge (manual):**
+
+    ```bash
+    CHALLENGE_TYPE="dns-01"
+    DNS_PROVIDER="manual"
+    ```
+
+    You will be prompted to create and remove DNS TXT records interactively. Certificates obtained this way cannot be renewed automatically, as manual intervention is always required.
+
+**Note:** Automated renewal is only supported for providers with API support (e.g., Cloudflare).
 
 ## Uninstall
 
@@ -92,7 +124,7 @@ This action will purge `w2c-letsencrypt-esxi`, undo any changes to system files 
 
 ## Usage
 
-Usually, fully-automated. No interaction required.
+For HTTP-01 and DNS-01 with a supported API provider, operation is fully automated and requires no user interaction. For manual DNS-01, as you must interactively create and remove DNS TXT records each time, certificates cannot be renewed automatically.
 
 ### Hostname Change
 

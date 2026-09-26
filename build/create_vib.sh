@@ -41,11 +41,11 @@ INIT_DIR=${VIB_PAYLOAD_DIR}/etc/init.d
 mkdir -p ${BIN_DIR} ${INIT_DIR}
 
 # Copy files to the corresponding locations
-cp ../* ${BIN_DIR} 2>/dev/null
+cp -r ../* ${BIN_DIR} 2>/dev/null
 cp ../w2c-letsencrypt ${INIT_DIR}
 
 # Ensure that shell scripts are executable
-chmod +x ${INIT_DIR}/w2c-letsencrypt ${BIN_DIR}/renew.sh
+chmod +x ${INIT_DIR}/w2c-letsencrypt ${BIN_DIR}/renew.sh ${BIN_DIR}/dnsapi/dns_api.sh
 
 # Create tgz with payload
 tar czf ${TEMP_DIR}/payload1 -C ${VIB_PAYLOAD_DIR} etc opt

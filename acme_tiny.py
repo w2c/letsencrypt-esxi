@@ -13,7 +13,7 @@ LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(logging.StreamHandler())
 LOGGER.setLevel(logging.INFO)
 
-def get_crt(account_key, csr, acme_dir, log=LOGGER, CA=DEFAULT_CA, disable_check=False, directory_url=DEFAULT_DIRECTORY_URL, contact=None, check_port=None):
+def get_crt(account_key, csr, acme_dir, log=LOGGER, CA=DEFAULT_CA, disable_check=False, directory_url=DEFAULT_DIRECTORY_URL, contact=None, check_port=None, challenge_type="http-01", timeout=30):
     directory, acct_headers, alg, jwk = None, None, None, None # global variables
 
     # helper functions - base64 encode for jose spec
@@ -69,6 +69,28 @@ def get_crt(account_key, csr, acme_dir, log=LOGGER, CA=DEFAULT_CA, disable_check
             time.sleep(0 if result is None else 2)
             result, _, _ = _send_signed_request(url, None, err_msg)
         return result
+
+    # helper function - execute DNS API actions
+    def _execute_dns_api(action, domain, token, key_auth=None):
+        api_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dnsapi")
+        api_script = os.path.join(api_dir, "dns_api.sh")
+        if not os.path.exists(api_script) or not os.access(api_script, os.X_OK):
+            raise ValueError("DNS API script not found or not executable: {0}".format(api_script))
+        env = os.environ.copy()
+        env.update({
+            'ACME_CHALLENGE_TYPE': challenge_type,
+            'ACME_DOMAIN': domain,
+            'ACME_TOKEN': token,
+            'ACME_KEY_AUTH': key_auth or '',
+            'DNS_PROVIDER': os.environ.get('DNS_PROVIDER', '')
+        })
+        cmd = ["/bin/sh", api_script, action, domain, token, key_auth or '']
+        proc = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = proc.communicate()
+        if proc.returncode != 0:
+            error_msg = stderr.decode('utf8', errors='replace')
+            raise IOError("DNS API failed: {0}".format(error_msg))
+        return stdout.decode('utf8', errors='replace')
 
     # parse account key to get public key
     log.info("Parsing account key...")
@@ -130,28 +152,40 @@ def get_crt(account_key, csr, acme_dir, log=LOGGER, CA=DEFAULT_CA, disable_check
             log.info("Already verified: {0}, skipping...".format(domain))
             continue
         log.info("Verifying {0}...".format(domain))
+        if challenge_type == "http-01":
+            challenge = [c for c in authorization['challenges'] if c['type'] == "http-01"][0]
+            token = re.sub(r"[^A-Za-z0-9_\-]", "_", challenge['token'])
+            keyauthorization = "{0}.{1}".format(token, thumbprint)
+            wellknown_path = os.path.join(acme_dir, token)
+            with open(wellknown_path, "w") as wellknown_file:
+                wellknown_file.write(keyauthorization)
 
-        # find the http-01 challenge and write the challenge file
-        challenge = [c for c in authorization['challenges'] if c['type'] == "http-01"][0]
-        token = re.sub(r"[^A-Za-z0-9_\-]", "_", challenge['token'])
-        keyauthorization = "{0}.{1}".format(token, thumbprint)
-        wellknown_path = os.path.join(acme_dir, token)
-        with open(wellknown_path, "w") as wellknown_file:
-            wellknown_file.write(keyauthorization)
-
-        # check that the file is in place
-        try:
-            wellknown_url = "http://{0}{1}/.well-known/acme-challenge/{2}".format(domain, "" if check_port is None else ":{0}".format(check_port), token)
-            assert (disable_check or _do_request(wellknown_url)[0] == keyauthorization)
-        except (AssertionError, ValueError) as e:
-            raise ValueError("Wrote file to {0}, but couldn't download {1}: {2}".format(wellknown_path, wellknown_url, e))
-
+            # check that the file is in place
+            try:
+                wellknown_url = "http://{0}{1}/.well-known/acme-challenge/{2}".format(domain, "" if check_port is None else ":{0}".format(check_port), token)
+                assert (disable_check or _do_request(wellknown_url)[0] == keyauthorization)
+            except (AssertionError, ValueError) as e:
+                raise ValueError("Wrote file to {0}, but couldn't download {1}: {2}".format(wellknown_path, wellknown_url, e))
+        elif challenge_type == "dns-01":
+            challenge = [c for c in authorization['challenges'] if c['type'] == "dns-01"][0]
+            token = challenge['token']
+            keyauthorization = "{0}.{1}".format(token, thumbprint)
+            log.info("Setting up DNS challenge for {0}...".format(domain))
+            _execute_dns_api("add", domain, token, keyauthorization)
+            log.info("DNS challenge setup complete. Waiting for propagation...")
+            wait_time = int(os.getenv('DNS_PROPAGATION_WAIT', '30'))
+            time.sleep(wait_time)
         # say the challenge is done
         _send_signed_request(challenge['url'], {}, "Error submitting challenges: {0}".format(domain))
         authorization = _poll_until_not(auth_url, ["pending"], "Error checking challenge status for {0}".format(domain))
+        # cleanup
+        if challenge_type == "http-01":
+            os.remove(wellknown_path)
+        elif challenge_type == "dns-01":
+            log.info("Cleaning up DNS challenge for {0}...".format(domain))
+            _execute_dns_api("rm", domain, token, keyauthorization)
         if authorization['status'] != "valid":
             raise ValueError("Challenge did not pass for {0}: {1}".format(domain, authorization))
-        os.remove(wellknown_path)
         log.info("{0} verified!".format(domain))
 
     # finalize the order with the csr
@@ -182,17 +216,31 @@ def main(argv=None):
     )
     parser.add_argument("--account-key", required=True, help="path to your Let's Encrypt account private key")
     parser.add_argument("--csr", required=True, help="path to your certificate signing request")
-    parser.add_argument("--acme-dir", required=True, help="path to the .well-known/acme-challenge/ directory")
+    parser.add_argument("--acme-dir", required=False, help="path to the .well-known/acme-challenge/ directory")
     parser.add_argument("--quiet", action="store_const", const=logging.ERROR, help="suppress output except for errors")
     parser.add_argument("--disable-check", default=False, action="store_true", help="disable checking if the challenge file is hosted correctly before telling the CA")
     parser.add_argument("--directory-url", default=DEFAULT_DIRECTORY_URL, help="certificate authority directory url, default is Let's Encrypt")
     parser.add_argument("--ca", default=DEFAULT_CA, help="DEPRECATED! USE --directory-url INSTEAD!")
     parser.add_argument("--contact", metavar="CONTACT", default=None, nargs="*", help="Contact details (e.g. mailto:aaa@bbb.com) for your account-key")
     parser.add_argument("--check-port", metavar="PORT", default=None, help="what port to use when self-checking the challenge file, default is port 80")
+    parser.add_argument("--challenge-type", default="http-01", choices=["http-01", "dns-01"], help="ACME challenge type to use (http-01 or dns-01)")
+    parser.add_argument("--timeout", type=int, default=30, help="Timeout for DNS propagation wait (seconds)")
 
     args = parser.parse_args(argv)
     LOGGER.setLevel(args.quiet or LOGGER.level)
-    signed_crt = get_crt(args.account_key, args.csr, args.acme_dir, log=LOGGER, CA=args.ca, disable_check=args.disable_check, directory_url=args.directory_url, contact=args.contact, check_port=args.check_port)
+    signed_crt = get_crt(
+        args.account_key,
+        args.csr,
+        args.acme_dir,
+        log=LOGGER,
+        CA=args.ca,
+        disable_check=args.disable_check,
+        directory_url=args.directory_url,
+        contact=args.contact,
+        check_port=args.check_port,
+        challenge_type=args.challenge_type,
+        timeout=args.timeout
+    )
     sys.stdout.write(signed_crt)
 
 if __name__ == "__main__": # pragma: no cover

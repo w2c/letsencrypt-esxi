@@ -1,0 +1,76 @@
+# Let's Encrypt ESXi Configuration Template
+#
+# USAGE:
+# 1. Copy this file: cp renew.cfg.example renew.cfg
+# 2. Edit renew.cfg and uncomment/configure settings as needed
+# 3. For HTTP-01 (default): No configuration required - works out of the box
+# 4. For DNS-01: Uncomment CHALLENGE_TYPE, DNS_PROVIDER, and provider credentials
+#
+# This file is safe to use as-is with default HTTP-01 behavior.
+# All non-default settings are commented out to prevent configuration errors.
+
+# =============================================================================
+# LET'S ENCRYPT SETTINGS
+# =============================================================================
+# Let's Encrypt server URL (default: production)
+# Uncomment below line for staging/testing (issues test certificates)
+#DIRECTORY_URL="https://acme-staging-v02.api.letsencrypt.org/directory"
+
+# Certificate renewal interval in days (default: 30)
+# Certificates are renewed this many days before expiration
+#RENEW_DAYS=14
+
+# Domain name for certificate (default: uses ESXi hostname)
+# Override only if hostname doesn't match desired certificate domain
+#DOMAIN=$(hostname -f)
+
+# Challenge type: "http-01" or "dns-01" (default: "http-01")
+#CHALLENGE_TYPE="dns-01"
+
+# =============================================================================
+# DNS PROVIDER CONFIGURATION (Required for DNS-01)
+# =============================================================================
+# Primary DNS provider - choose one:
+# Supported: cloudflare, manual
+#DNS_PROVIDER="cloudflare"
+
+#    WARNING: The "manual" provider requires user interaction and will NOT work
+#    with automated renewals (cron jobs). Use only for testing or one-time
+#    certificate generation. For production ESXi deployments, use an automated
+#    provider like cloudflare, route53, gcloud, azure, etc.
+
+# DNS challenge settings
+#DNS_PROPAGATION_WAIT=120        # Seconds to wait for DNS propagation
+#DNS_PROPAGATION_CHECK=1         # Enable active DNS propagation checking (1) or use fixed wait (0)
+#DNS_TIMEOUT=30                  # API request timeout in seconds
+#MAX_RETRIES=3                   # Maximum retry attempts for failed API calls
+#RETRY_DELAY=5                   # Base delay between retries (exponential backoff)
+#DEBUG=0                         # Enable debug logging (0=off, 1=on)
+#DNS_CACHE_TTL=120               # Cache TTL in seconds (2 minutes for ESXi)
+
+# DNS provider-specific settings
+# Uncomment and configure the provider you want to use
+
+# Cloudflare
+# Create an API token at https://dash.cloudflare.com/profile/api-tokens with Zone:Edit permissions
+#CF_API_TOKEN="your-cloudflare-api-token"
+
+# OR use Global API Key (legacy method)
+#CF_API_KEY="your-cloudflare-api-key"
+#CF_EMAIL="your-cloudflare-account-email"
+
+# Cloudflare-specific settings
+#CF_TTL=120                      # TTL for DNS records (seconds)
+#CF_PROXY=false                  # Enable Cloudflare proxy for records (true/false)
+
+# =============================================================================
+# ADVANCED SETTINGS (rarely need to change)
+# =============================================================================
+# File paths for certificates and keys
+# Override only if you need custom file locations
+#ACCOUNTKEY="esxi_account.key"
+#KEY="esxi.key"
+#CSR="esxi.csr"
+#CRT="esxi.crt"
+#VMWARE_CRT="/etc/vmware/ssl/rui.crt"
+#VMWARE_KEY="/etc/vmware/ssl/rui.key"
